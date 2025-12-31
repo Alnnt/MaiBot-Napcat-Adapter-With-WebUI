@@ -1,0 +1,359 @@
+"""
+静态资源 - 提供 HTML 页面
+"""
+
+
+def get_index_html() -> str:
+    """返回主页面 HTML"""
+    return '''<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaiBot Adapter 配置管理</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 8px;
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .list-container {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        
+        .list-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 12px;
+            min-height: 40px;
+        }
+        
+        .list-item {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .list-item .remove-btn {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+        
+        .list-item .remove-btn:hover {
+            background: rgba(255,255,255,0.5);
+        }
+        
+        .add-form {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .add-form input {
+            flex: 1;
+            padding: 10px 14px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        .add-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .add-form button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+        
+        .add-form button:hover {
+            background: #5a6fd6;
+        }
+        
+        .status {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            opacity: 0;
+            transform: translateY(-20px);
+            transition: all 0.3s;
+            z-index: 1000;
+        }
+        
+        .status.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .status.success {
+            background: #28a745;
+        }
+        
+        .status.error {
+            background: #dc3545;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .empty-list {
+            color: #999;
+            font-style: italic;
+            padding: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 MaiBot Adapter 配置管理</h1>
+        
+        <div class="card">
+            <h2>📋 群聊设置</h2>
+            <div class="form-group">
+                <label for="group_list_type">群聊列表类型</label>
+                <select id="group_list_type" onchange="updateConfig('group_list_type', this.value)">
+                    <option value="whitelist">白名单 (仅允许列表中的群聊)</option>
+                    <option value="blacklist">黑名单 (禁止列表中的群聊)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>群聊列表</label>
+                <div class="list-container">
+                    <div id="group_list" class="list-items">
+                        <div class="loading">加载中...</div>
+                    </div>
+                    <div class="add-form">
+                        <input type="number" id="new_group" placeholder="输入群号" />
+                        <button onclick="addItem('group_list')">添加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>💬 私聊设置</h2>
+            <div class="form-group">
+                <label for="private_list_type">私聊列表类型</label>
+                <select id="private_list_type" onchange="updateConfig('private_list_type', this.value)">
+                    <option value="whitelist">白名单 (仅允许列表中的用户)</option>
+                    <option value="blacklist">黑名单 (禁止列表中的用户)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>私聊列表</label>
+                <div class="list-container">
+                    <div id="private_list" class="list-items">
+                        <div class="loading">加载中...</div>
+                    </div>
+                    <div class="add-form">
+                        <input type="number" id="new_private" placeholder="输入QQ号" />
+                        <button onclick="addItem('private_list')">添加</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="status" class="status"></div>
+    
+    <script>
+        let config = {
+            group_list_type: 'whitelist',
+            group_list: [],
+            private_list_type: 'whitelist',
+            private_list: []
+        };
+        
+        // 加载配置
+        async function loadConfig() {
+            try {
+                const response = await fetch('/api/config');
+                config = await response.json();
+                renderConfig();
+            } catch (error) {
+                showStatus('加载配置失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 渲染配置
+        function renderConfig() {
+            // 设置选择框
+            document.getElementById('group_list_type').value = config.group_list_type;
+            document.getElementById('private_list_type').value = config.private_list_type;
+            
+            // 渲染列表
+            renderList('group_list', config.group_list);
+            renderList('private_list', config.private_list);
+        }
+        
+        // 渲染列表
+        function renderList(listId, items) {
+            const container = document.getElementById(listId);
+            if (items.length === 0) {
+                container.innerHTML = '<div class="empty-list">列表为空</div>';
+            } else {
+                container.innerHTML = items.map(item => `
+                    <div class="list-item">
+                        <span>${item}</span>
+                        <button class="remove-btn" onclick="removeItem('${listId}', ${item})">×</button>
+                    </div>
+                `).join('');
+            }
+        }
+        
+        // 更新配置
+        async function updateConfig(field, value) {
+            try {
+                const response = await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ field, value })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    config = result.config;
+                    renderConfig();
+                    showStatus(result.message, 'success');
+                } else {
+                    showStatus(result.error, 'error');
+                }
+            } catch (error) {
+                showStatus('更新失败: ' + error.message, 'error');
+            }
+        }
+        
+        // 添加项目
+        function addItem(listId) {
+            const inputId = listId === 'group_list' ? 'new_group' : 'new_private';
+            const input = document.getElementById(inputId);
+            const value = parseInt(input.value);
+            
+            if (isNaN(value) || value <= 0) {
+                showStatus('请输入有效的数字', 'error');
+                return;
+            }
+            
+            const list = [...config[listId]];
+            if (list.includes(value)) {
+                showStatus('该项已存在', 'error');
+                return;
+            }
+            
+            list.push(value);
+            updateConfig(listId, list);
+            input.value = '';
+        }
+        
+        // 删除项目
+        function removeItem(listId, value) {
+            const list = config[listId].filter(item => item !== value);
+            updateConfig(listId, list);
+        }
+        
+        // 显示状态提示
+        function showStatus(message, type) {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = 'status show ' + type;
+            setTimeout(() => {
+                status.className = 'status';
+            }, 3000);
+        }
+        
+        // 页面加载时获取配置
+        loadConfig();
+    </script>
+</body>
+</html>'''
+
